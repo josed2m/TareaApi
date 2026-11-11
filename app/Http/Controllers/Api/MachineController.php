@@ -10,60 +10,58 @@ use Illuminate\Http\Request;
 
 class MachineController extends Controller
 {
-    // Consulta 1: Máquinas filtradas por línea de producción y estado
+    // Consulta 1: Máquinas por línea y estado (versión compacta en 5 líneas)
     public function machinesByLineAndStatus(Request $request)
     {
-        $lineId = $request->query('production_line_id');
-        $status = $request->query('status');
+        $query = $request->query('status') 
+            ? machine::where('status', $request->query('status')) 
+            : machine::where('status', 'operativa')->orWhere('status', 'mantenimiento');
 
-        $query = machine::query();
-
-        if ($lineId) {
-            $query->where('production_line_id', $lineId);
-        }
-
-        if ($status) {
-            $query->where('status', $status);
-        }
+        if ($request->query('production_line_id')) $query->where('production_line_id', $request->query('production_line_id'));
 
         return response()->json($query->get());
     }
 
-    // Consulta 2: Máquinas por criticidad
+    // Consulta 2: Máquinas por criticidad (usando whereIn y select)
     public function machinesByCriticality(Request $request)
     {
-        $criticality = $request->query('criticality', 'alta');
-        $machines = machine::where('criticality', $criticality)->get();
+        $criticalities = (array) $request->query('criticality', ['alta','media']);
+
+        $machines = machine::select('id', 'name', 'type', 'criticality', 'status', 'production_line_id')
+            ->whereIn('criticality', $criticalities)
+            ->get();
 
         return response()->json($machines);
     }
 
-    // Consulta 3: Máquinas operativas disponibles
+    // Consulta 3: Máquinas operativas disponibles (excluyendo fuera de servicio y mantenimiento)
     public function availableMachines()
     {
-        $machines = machine::where('status', 'operativa')->get();
+        $machines = machine::select('id', 'name', 'type', 'status', 'production_line_id')
+            ->whereNotIn('status', ['fuera_servicio', 'mantenimiento'])
+            ->get();
 
         return response()->json($machines);
     }
 
-    // Consulta 6: Máquinas con órdenes de mantenimiento pendientes
+    // Consulta 6: Máquinas con órdenes pendientes (usando whereHas y where)
     public function machinesWithPendingOrders()
     {
         $machines = machine::whereHas('maintenanceOrders', function ($q) {
             $q->where('status', 'pendiente');
-        })->with(['maintenanceOrders' => function ($q) {
-            $q->where('status', 'pendiente');
-        }])->get();
+        })->get();
 
         return response()->json($machines);
     }
 
-    // Consulta 7: Máquinas con mantenimiento correctivo
+    // Consulta 7: Máquinas con mantenimiento correctivo finalizado (usando whereHas, where y select)
     public function machinesWithCorrectiveMaintenance()
     {
-        $machines = machine::whereHas('maintenanceOrders', function ($q) {
-            $q->where('maintenance_type', 'correctivo');
-        })->get();
+        $machines = machine::select('code', 'name', 'status', 'criticality')
+            ->whereHas('maintenanceOrders', function ($q) {
+                $q->where('maintenance_type', 'correctivo')
+                ->where('status', 'finalizado');
+            })->get();
 
         return response()->json($machines);
     }
@@ -71,15 +69,18 @@ class MachineController extends Controller
     // Consulta 8: Máquinas sin órdenes de mantenimiento
     public function machinesWithoutOrders()
     {
-        $machines = machine::doesntHave('maintenanceOrders')->get();
-
+        $machines = machine::doesntHave('maintenanceOrders')
+        ->select('code', 'name', 'status', 'criticality')
+        ->get();
         return response()->json($machines);
     }
 
-    // Consulta 9: Tipos únicos de máquinas (distintos)
+    // Consulta 9: Tipos únicos de máquinas (usando distinct y select)
     public function uniqueMachineTypes()
     {
-        $types = machine::distinct()->pluck('type');
+        $types = machine::select('type')
+            ->distinct()
+            ->pluck('type');
 
         return response()->json($types);
     }

@@ -19,32 +19,26 @@ class DatabaseSeeder extends Seeder
             'supervisor' => 'Carlos Gómez',
             'status' => 'activa'
         ]);
-
         production_line::factory(9)->create();
-
         $m1 = machine::factory()->create([
             'production_line_id' => 1,
             'status' => 'operativa',
             'criticality' => 'alta',
             'type' => 'Prensa'
         ]);
-
         $m2 = machine::factory()->create([
             'production_line_id' => 1,
             'status' => 'mantenimiento',
             'criticality' => 'media',
             'type' => 'Torno'
         ]);
-
         machine::factory()->create([
             'production_line_id' => $line1->id,
             'status' => 'operativa',
             'criticality' => 'baja',
             'type' => 'Robot Ensamble'
         ]);
-
         machine::factory(10)->create();
-
         maintenance_order::factory()->create([
             'machine_id' => $m1->id,
             'status' => 'pendiente',
@@ -52,7 +46,6 @@ class DatabaseSeeder extends Seeder
             'completed_at' => null,
             'actual_cost' => null
         ]);
-
         maintenance_order::factory()->create([
             'machine_id' => $m2->id,
             'status' => 'finalizado',
@@ -61,7 +54,6 @@ class DatabaseSeeder extends Seeder
             'actual_cost' => 550.00,
             'completed_at' => now()
         ]);
-
         maintenance_order::factory(10)->create();
     }
 }

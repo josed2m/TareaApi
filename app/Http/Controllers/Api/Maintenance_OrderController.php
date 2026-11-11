@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 
 class Maintenance_OrderController extends Controller 
 {
-    // Consulta 4: Órdenes sin fecha de finalización (whereNull, where)
+    // Consulta 4: Órdenes sin fecha de finalización (usando whereNull, where y select)
     public function pendingCompletionOrders()
     {
         $orders = maintenance_order::select('order_number', 'maintenance_type', 'status', 'technician', 'estimated_cost')
@@ -18,7 +18,7 @@ class Maintenance_OrderController extends Controller
 
         return response()->json($orders);
     }
-
+    
     // Consulta 5: Órdenes con costo real registrado y estado finalizado (whereNotNull, where, select)
     public function completedOrdersWithCost()
     {
